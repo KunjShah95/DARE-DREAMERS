@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  CANDIDATE
+  RECRUITER
+}
+
+enum Platform {
+  GITHUB
+  LINKEDIN
+  TWITTER
+  MEDIUM
+  HASHNODE
+  DEVTO
+}
+
+enum SubscriptionTier {
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+// Users table (both candidates and recruiters)
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  userType     UserType @map("user_type")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  candidateProfile CandidateProfile?
+  recruiterProfile RecruiterProfile?
+
+  @@map("users")
+}
+
+// Candidate profiles
+model CandidateProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isPublic  Boolean  @default(false) @map("is_public")
+  location  String?
+  bio       String?
+  website   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  platformConnections PlatformConnection[]
+  candidateScores     CandidateScore[]
+  platformData        PlatformData[]
+
+  @@map("candidate_profiles")
+}
+
+// Platform connections
+model PlatformConnection {
+  id          String           @id @default(uuid())
+  candidateId String           @map("candidate_id")
+  candidate   CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  platform    Platform
+  username    String
+  isVerified  Boolean          @default(false) @map("is_verified")
+  lastSynced  DateTime?        @map("last_synced")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@unique([candidateId, platform])
+  @@map("platform_connections")
+}
+
+// Candidate scores
+model CandidateScore {
+  id             String           @id @default(uuid())
+  candidateId    String           @map("candidate_id")
+  candidate      CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  compositeScore Int              @map("composite_score")
+  githubScore    Int?             @map("github_score")
+  linkedinScore  Int?             @map("linkedin_score")
+  blogScore      Int?             @map("blog_score")
+  socialScore    Int?             @map("social_score")
+  strengths      String[]
+  improvements   String[]
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@map("candidate_scores")
+}
+
+// Platform data cache
+model PlatformData {
+  id            String           @id @default(uuid())
+  candidateId   String           @map("candidate_id")
+  candidate     CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  platform      Platform
+  dataType      String           @map("data_type")
+  rawData       Json             @map("raw_data")
+  processedData Json?            @map("processed_data")
+  fetchedAt     DateTime         @default(now()) @map("fetched_at")
+  expiresAt     DateTime?        @map("expires_at")
+
+  @@unique([candidateId, platform, dataType])
+  @@index([candidateId, platform])
+  @@map("platform_data")
+}
+
+// Recruiter profiles
+model RecruiterProfile {
+  id              String           @id @default(uuid())
+  userId          String           @unique @map("user_id")
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company         String
+  subscriptionTier SubscriptionTier @default(BASIC) @map("subscription_tier")
+  apiKey          String?          @unique @map("api_key")
+  apiCallsUsed    Int              @default(0) @map("api_calls_used")
+  apiCallsLimit   Int              @default(1000) @map("api_calls_limit")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  savedSearches SavedSearch[]
+
+  @@map("recruiter_profiles")
+}
+
+// Saved searches
+model SavedSearch {
+  id          String           @id @default(uuid())
+  recruiterId String           @map("recruiter_id")
+  recruiter   RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  name        String
+  queryParams Json             @map("query_params")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@map("saved_searches")
+}

@@ -1,0 +1,27 @@
+/* Design tokens: colors, spacing, typography */
+:root {
+  --color-bg: 17 24 39; /* rgb parts for utility uses */
+  --color-foreground: 255 255 255;
+
+  --brand-500: 16 185 129; /* emerald-500 */
+  --brand-600: 5 150 105;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial;
+}
+
+/* Utility helpers used by components */
+.bg-brand-500 {
+  background-color: rgb(var(--brand-500));
+}
+.text-brand-500 {
+  color: rgb(var(--brand-500));
+}
